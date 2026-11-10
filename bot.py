@@ -351,4 +351,323 @@ class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
         discord.Color.orange(),
         [
             ("الضمان", self.daman.value),
-            ("المقابل", self.mokaabel
+            ("المقابل", self.mokaabel.value),
+            ("اسم اللاعب", self.ingame_name.value),
+        ],
+    )
+
+
+# د) استمارة الدعم الفني
+class SupportModal(Modal, title="الدعم الفني"):
+
+  def __init__(self):
+    super().__init__()
+
+  issue = TextInput(
+      label="ما هي مشكلتك؟",
+      style=TextStyle.paragraph,
+      placeholder="اشرح مشكلتك بالتفصيل...",
+      required=True,
+  )
+
+  async def on_submit(self, interaction: discord.Interaction):
+    global ticket_counters
+    guild = interaction.guild
+    num = ticket_counters["دعم"]
+    ticket_counters["دعم"] += 1
+
+    channel_name = f"تكت-دعم-{num:03d}"
+
+    await create_ticket_channel(
+        interaction,
+        channel_name,
+        "الدعم الفني",
+        ROLE_IDS["دعم"],
+        discord.Color.red(),
+        [("وصف المشكلة", self.issue.value)],
+    )
+
+
+# ---------------------------------------------------------
+# 6. دالة موحدة لإنشاء التكت مع العدادات والمنشن التلقائي
+# ---------------------------------------------------------
+async def create_ticket_channel(
+    interaction: discord.Interaction,
+    channel_name,
+    service_type,
+    role_id,
+    embed_color,
+    fields_list,
+    second_member=None,
+):
+  guild = interaction.guild
+  user = interaction.user
+
+  role = guild.get_role(role_id)
+
+  overwrites = {
+      guild.default_role: discord.PermissionOverwrite(read_messages=False),
+      user: discord.PermissionOverwrite(
+          read_messages=True,
+          send_messages=True,
+          attach_files=True,
+          embed_links=True,
+      ),
+      guild.me: discord.PermissionOverwrite(
+          read_messages=True,
+          send_messages=True,
+          attach_files=True,
+          embed_links=True,
+      ),
+  }
+
+  if role:
+    overwrites[role] = discord.PermissionOverwrite(
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+    )
+
+  if second_member:
+    overwrites[second_member] = discord.PermissionOverwrite(
+        read_messages=True,
+        send_messages=True,
+        attach_files=True,
+        embed_links=True,
+    )
+
+  ticket_channel = await guild.create_text_channel(
+      name=channel_name, overwrites=overwrites
+  )
+
+  embed = discord.Embed(
+      title=f"تفاصيل تذكرة: {service_type}", color=embed_color
+  )
+  embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
+  embed.add_field(name="صاحب الطلب", value=user.mention, inline=False)
+
+  for name, value in fields_list:
+    embed.add_field(name=name, value=value, inline=False)
+
+  mention_text = f"مرحباً {user.mention}"
+  if second_member:
+    mention_text += f" {second_member.mention}"
+  if role:
+    mention_text += f" | {role.mention}"
+
+  await ticket_channel.send(
+      content=mention_text, embed=embed, view=TicketControlView()
+  )
+  await interaction.response.send_message(
+      f"✅ تم فتح التذكتك بنجاح في {ticket_channel.mention}", ephemeral=True
+  )
+
+
+# ---------------------------------------------------------
+# 7. قائمة اختيار الخدمات الرئيسية
+# ---------------------------------------------------------
+class TicketTypeSelect(Select):
+
+  def __init__(self):
+    options = [
+        discord.SelectOption(
+            label="وسيط مضمون",
+            value="وسيط",
+            description="لفتح تكت وساطة وتداول بين طرفين",
+            emoji="⚖️",
+        ),
+        discord.SelectOption(
+            label="تطوير المابات",
+            value="تطوير",
+            description="لطلب خدمة تطوير مابات",
+            emoji="📊",
+        ),
+        discord.SelectOption(
+            label="تكت الهلاوين",
+            value="هلاوين",
+            description="لطلب خدمات وفعاليات الهلاوين",
+            emoji="🎃",
+        ),
+        discord.SelectOption(
+            label="التواصل مع الدعم الفني",
+            value="دعم",
+            description="لأي مشكلة أو استفسار",
+            emoji="🎧",
+        ),
+    ]
+    super().__init__(placeholder="اختر نوع التذكرة...", options=options)
+
+  async def callback(self, interaction: discord.Interaction):
+    val = self.values[0]
+    if val == "وسيط":
+      await interaction.response.send_modal(MiddlemanModal())
+    elif val == "تطوير":
+      await interaction.response.send_modal(DevelopmentModal())
+    elif val == "هلاوين":
+      await interaction.response.send_modal(HalloweenModal())
+    elif val == "دعم":
+      await interaction.response.send_modal(SupportModal())
+
+
+class MainTicketView(View):
+
+  def __init__(self):
+    super().__init__(timeout=None)
+    self.add_item(TicketTypeSelect())
+
+
+# ---------------------------------------------------------
+# 8. أوامر السلاش (Slash Commands)
+# ---------------------------------------------------------
+@bot.tree.command(
+    name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
+)
+@discord.app_commands.describe(
+    image_url="ضع رابط الصورة المراد إضافتها في البنل (اختياري)"
+)
+async def slash_ticket_setup(
+    interaction: discord.Interaction, image_url: str = None
+):
+  if not interaction.user.guild_permissions.administrator:
+    await interaction.response.send_message(
+        "❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True
+    )
+    return
+
+  embed = discord.Embed(
+      title=PANEL_CONFIG["title"],
+      description=PANEL_CONFIG["description"],
+      color=PANEL_CONFIG["color"],
+  )
+
+  if image_url:
+    embed.set_image(url=image_url)
+
+  await interaction.channel.send(embed=embed, view=MainTicketView())
+  await interaction.response.send_message(
+      "✅ تم إنشاء بنل التكتات بنجاح!", ephemeral=True
+  )
+
+
+@bot.tree.command(name="add", description="إضافة عضو إلى التكت الحالي")
+@discord.app_commands.describe(member="العضو المراد إضافته")
+async def slash_add(interaction: discord.Interaction, member: discord.Member):
+  await interaction.channel.set_permissions(
+      member,
+      read_messages=True,
+      send_messages=True,
+      attach_files=True,
+      embed_links=True,
+  )
+  await interaction.response.send_message(
+      f"✅ تم إضافة {member.mention} إلى التكت وبإمكانه إرسال الصور والرسائل."
+  )
+
+
+@bot.tree.command(name="remove", description="إزالة عضو من التكت الحالي")
+@discord.app_commands.describe(member="العضو المراد إزالته")
+async def slash_remove(
+    interaction: discord.Interaction, member: discord.Member
+):
+  await interaction.channel.set_permissions(member, overwrite=None)
+  await interaction.response.send_message(
+      f"🚫 تم إزالة {member.mention} من التكت."
+  )
+
+
+@bot.tree.command(name="rename", description="إعادة تسمية التكت الحالي")
+@discord.app_commands.describe(new_name="اسم التكت الجديد")
+async def slash_rename(interaction: discord.Interaction, new_name: str):
+  await interaction.channel.edit(name=new_name)
+  await interaction.response.send_message(
+      f"✏️ تم تغيير اسم التكت إلى: `{new_name}`"
+  )
+
+
+@bot.tree.command(name="close", description="إغلاق وحذف التكت الحالي")
+async def slash_close(interaction: discord.Interaction):
+  if not interaction.user.guild_permissions.manage_channels:
+    await interaction.response.send_message(
+        "❌ عذراً، الإدارة فقط هي من تستطيع إغلاق التكت!", ephemeral=True
+    )
+    return
+  await interaction.response.send_message(
+      "🛑 سيتم حذف التكت خلال 3 ثوانٍ..."
+  )
+  await asyncio.sleep(3)
+  await interaction.channel.delete()
+
+
+@bot.tree.command(name="lock", description="قفل الروم الحالي")
+async def slash_lock(interaction: discord.Interaction):
+  if not interaction.user.guild_permissions.manage_channels:
+    return
+  await interaction.channel.set_permissions(
+      interaction.guild.default_role, send_messages=False
+  )
+  await interaction.response.send_message("🔒 تم قفل الروم بنجاح.")
+
+
+@bot.tree.command(name="unlock", description="فتح الروم الحالي")
+async def slash_unlock(interaction: discord.Interaction):
+  if not interaction.user.guild_permissions.manage_channels:
+    return
+  await interaction.channel.set_permissions(
+      interaction.guild.default_role, send_messages=True
+  )
+  await interaction.response.send_message("🔓 تم فتح الروم بنجاح.")
+
+
+@bot.tree.command(name="warn", description="تحذير عضو في السيرفر")
+@discord.app_commands.describe(member="العضو", reason="السبب")
+async def slash_warn(
+    interaction: discord.Interaction,
+    member: discord.Member,
+    reason: str = "غير محدد",
+):
+  if not interaction.user.guild_permissions.manage_messages:
+    await interaction.response.send_message(
+        "❌ لا تمتلك الصلاحية لاستخدام هذا الأمر.", ephemeral=True
+    )
+    return
+  await interaction.response.send_message(
+      f"⚠️ تم تحذير {member.mention} بسبب: {reason}"
+  )
+
+
+@bot.tree.command(name="prison", description="سجن عضو في السيرفر")
+@discord.app_commands.describe(member="العضو المراد سجنه")
+async def slash_prison(interaction: discord.Interaction, member: discord.Member):
+  if not interaction.user.guild_permissions.manage_roles:
+    await interaction.response.send_message(
+        "❌ لا تمتلك صلاحية إدارة الرتب.", ephemeral=True
+    )
+    return
+  prison_role = discord.utils.get(interaction.guild.roles, name="Prison")
+  if not prison_role:
+    prison_role = await interaction.guild.create_role(
+        name="Prison", color=discord.Color.dark_gray()
+    )
+    for channel in interaction.guild.channels:
+      await channel.set_permissions(prison_role, send_messages=False)
+  await member.add_roles(prison_role)
+  await interaction.response.send_message(f"🔒 تم سجن {member.mention} بنجاح!")
+
+
+# ---------------------------------------------------------
+# 9. تشغيل البوت
+# ---------------------------------------------------------
+@bot.event
+async def on_ready():
+  try:
+    synced = await bot.tree.sync()
+    print(f"Synced {len(synced)} slash commands successfully.")
+  except Exception as e:
+    print(e)
+  print(f"Logged in as {bot.user.name} - Ready & Online!")
+
+
+keep_alive()
+TOKEN = os.environ.get("TOKEN")
+bot.run(TOKEN)
