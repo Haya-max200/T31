@@ -40,7 +40,7 @@ bot = commands.Bot(command_prefix=["!"], intents=intents)
 ticket_counters = {
     "وسيط": 1,
     "تطوير": 1,
-    "هلاوين": 1,
+    "ألوان": 1,
     "دعم": 1
 }
 
@@ -53,12 +53,12 @@ PANEL_CONFIG = {
     "color": 0x6A0DAD, # اللون البنفسجي الرسمي
 }
 
-# IDs الرتب الخاصة بكل قسم
+# IDs الرتب الخاصة بكل قسم (تم تحديث رتبه ألوان بيوت بالإيدي الجديد)
 ROLE_IDS = {
     "وسيط": 1555673464470376479,
     "تطوير": 1561565278045736970,
     "دعم": 1555335120582344784,
-    "هلاوين": 1562309878695985272,
+    "ألوان": 1562309878695985272,
 }
 
 # آيدي روم التقييمات الصحيح
@@ -66,7 +66,7 @@ VOUCHES_CHANNEL_ID = 1555521230419922974
 
 
 # ---------------------------------------------------------
-# 3. أزرار التحكم داخل التكت (مع إضافة الإيموجيات المطلوبة)
+# 3. أزرار التحكم داخل التكت
 # ---------------------------------------------------------
 class TicketControlView(View):
 
@@ -131,14 +131,14 @@ class TicketControlView(View):
 
 
 # ---------------------------------------------------------
-# 4. نظام الرد التلقائي عند كتابة الأرقام (1, 2, 3, 4) داخل التكتات
+# 4. نظام الرد التلقائي عند كتابة الأرقام داخل التكتات
 # ---------------------------------------------------------
 @bot.event
 async def on_message(message):
   if message.author.bot:
     return
 
-  if "تكت" in message.channel.name or "وسيط" in message.channel.name or "دعم" in message.channel.name or "تطوير" in message.channel.name or "هلاوين" in message.channel.name:
+  if any(x in message.channel.name for x in ["تكت", "وسيط", "دعم", "تطوير", "ألوان"]):
     content = message.content.strip()
 
     team_data = None
@@ -157,10 +157,7 @@ async def on_message(message):
       async for msg in message.channel.history(limit=20):
         if msg.author == bot.user and msg.embeds:
           for emb in msg.embeds:
-            if (
-                emb.description
-                and "تم استلام التذكره بواسطة" in emb.description
-            ):
+            if emb.description and "تم استلام التذكره بواسطة" in emb.description:
               try:
                 await msg.delete()
               except:
@@ -189,38 +186,26 @@ async def on_message(message):
 
 
 # ---------------------------------------------------------
-# 5. الاستمارات الخاصة بكل قسم مع العدادات التصاعدية وسحب يوزر الطرف الثاني
+# 5. الاستمارات الخاصة بكل قسم
 # ---------------------------------------------------------
 
-# أ) استمارة الوسيط (مع إضافة الطرف الثاني تلقائياً)
+# أ) استمارة الوسيط
 class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
 
   def __init__(self):
     super().__init__()
 
   get_item = TextInput(
-      label="وش بتاخذ؟",
-      style=TextStyle.paragraph,
-      placeholder="اكتب ما ستستلمه...",
-      required=True,
+      label="وش بتاخذ؟", style=TextStyle.paragraph, placeholder="اكتب ما ستستلمه...", required=True
   )
   give_item = TextInput(
-      label="وش بتعطي؟",
-      style=TextStyle.paragraph,
-      placeholder="اكتب ما ستقدمه...",
-      required=True,
+      label="وش بتعطي؟", style=TextStyle.paragraph, placeholder="اكتب ما ستقدمه...", required=True
   )
   other_user = TextInput(
-      label="يوزر الطرف الثاني بالديسكورد",
-      style=TextStyle.short,
-      placeholder="اكتب يوزر الطرف الثاني...",
-      required=True,
+      label="يوزر الطرف الثاني بالديسكورد", style=TextStyle.short, placeholder="اكتب يوزر الطرف الثاني...", required=True
   )
   tip = TextInput(
-      label="التيب او الهديه/غير إلزامي",
-      style=TextStyle.short,
-      placeholder="اكتب التيب إن وجد...",
-      required=False,
+      label="التيب او الهديه/غير إلزامي", style=TextStyle.short, placeholder="اكتب التيب إن وجد...", required=False
   )
 
   async def on_submit(self, interaction: discord.Interaction):
@@ -246,13 +231,7 @@ class MiddlemanModal(Modal, title="تفاصيل صفقة الوساطة"):
     ]
 
     await create_ticket_channel(
-        interaction,
-        channel_name,
-        "وسيط مضمون",
-        ROLE_IDS["وسيط"],
-        discord.Color.gold(),
-        fields,
-        second_member=second_member
+        interaction, channel_name, "وسيط مضمون", ROLE_IDS["وسيط"], discord.Color.gold(), fields, second_member=second_member
     )
 
 
@@ -263,28 +242,16 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
     super().__init__()
 
   dev_target = TextInput(
-      label="اكتب وش تبي اطور",
-      style=TextStyle.paragraph,
-      placeholder="اكتب اي شخصيه تبي تطور...",
-      required=True,
+      label="اكتب وش تبي اطور", style=TextStyle.paragraph, placeholder="اكتب اي شخصيه تبي تطور...", required=True
   )
   dev_price = TextInput(
-      label="بكم تبي تطور",
-      style=TextStyle.short,
-      placeholder="اكتب بكم تبي تطور...",
-      required=True,
+      label="بكم تبي تطور", style=TextStyle.short, placeholder="اكتب بكم تبي تطور...", required=True
   )
   mokaabel = TextInput(
-      label="اكتب المقابل هنا",
-      style=TextStyle.paragraph,
-      placeholder="...المقابل",
-      required=True,
+      label="اكتب المقابل هنا", style=TextStyle.paragraph, placeholder="...المقابل", required=True
   )
   account_name = TextInput(
-      label="اكتب اسم حسابك هنا",
-      style=TextStyle.short,
-      placeholder="اكتب اسم حسابك...",
-      required=True,
+      label="اكتب اسم حسابك هنا", style=TextStyle.short, placeholder="اكتب اسم حسابك...", required=True
   )
 
   async def on_submit(self, interaction: discord.Interaction):
@@ -296,64 +263,49 @@ class DevelopmentModal(Modal, title="تفاصيل تطوير المابات"):
     channel_name = f"تكت-تطوير-{num:03d}"
 
     await create_ticket_channel(
-        interaction,
-        channel_name,
-        "تطوير المابات",
-        ROLE_IDS["تطوير"],
-        discord.Color.blue(),
-        [
+        interaction, channel_name, "تطوير المابات", ROLE_IDS["تطوير"], discord.Color.blue(), [
             ("المراد التطوير", self.dev_target.value),
             ("سعر التطوير", self.dev_price.value),
             ("المقابل", self.mokaabel.value),
             ("اسم الحساب", self.account_name.value),
-        ],
+        ]
     )
 
 
-# جـ) استمارة تكت الهلاوين
-class HalloweenModal(Modal, title="أسئلة تكت الهلاوين"):
+# جـ) استمارة طلب ألوان بيوت (تتطلب اختيار الماب واللون أولاً)
+class HouseColorModal(Modal, title="تفاصيل طلب ألوان البيوت"):
 
-  def __init__(self):
-    super().__init__()
+  def __init__(self, map_name: str, color_name: str):
+    super().__init__(title=f"ألوان بيوت ({map_name})")
+    self.map_name = map_name
+    self.color_name = color_name
 
   daman = TextInput(
-      label="وش ضمانك؟",
-      style=TextStyle.paragraph,
-      placeholder="اكتب ضمانك هنا...",
-      required=True,
+      label="وش ضمانك؟", style=TextStyle.paragraph, placeholder="اكتب ضمانك هنا...", required=True
   )
   mokaabel = TextInput(
-      label="وش مقابلك؟",
-      style=TextStyle.paragraph,
-      placeholder="اكتب مقابلتك هنا...",
-      required=True,
+      label="وش مقابلك؟", style=TextStyle.paragraph, placeholder="اكتب مقابلتك هنا...", required=True
   )
   ingame_name = TextInput(
-      label="اسمك باللعبة",
-      style=TextStyle.short,
-      placeholder="اكتب اسمك باللعبة...",
-      required=True,
+      label="اسمك باللعبة", style=TextStyle.short, placeholder="اكتب اسمك باللعبة...", required=True
   )
 
   async def on_submit(self, interaction: discord.Interaction):
     global ticket_counters
     guild = interaction.guild
-    num = ticket_counters["هلاوين"]
-    ticket_counters["هلاوين"] += 1
+    num = ticket_counters["ألوان"]
+    ticket_counters["ألوان"] += 1
 
-    channel_name = f"تكت-هلاوين-{num:03d}"
+    channel_name = f"تكت-ألوان-{num:03d}"
 
     await create_ticket_channel(
-        interaction,
-        channel_name,
-        "تكت الهلاوين",
-        ROLE_IDS["هلاوين"],
-        discord.Color.orange(),
-        [
+        interaction, channel_name, "ألوان بيوت", ROLE_IDS["ألوان"], discord.Color.green(), [
+            ("نوع الماب", self.map_name),
+            ("اللون المطلوب", self.color_name),
             ("الضمان", self.daman.value),
             ("المقابل", self.mokaabel.value),
             ("اسم اللاعب", self.ingame_name.value),
-        ],
+        ]
     )
 
 
@@ -364,10 +316,7 @@ class SupportModal(Modal, title="الدعم الفني"):
     super().__init__()
 
   issue = TextInput(
-      label="ما هي مشكلتك؟",
-      style=TextStyle.paragraph,
-      placeholder="اشرح مشكلتك بالتفصيل...",
-      required=True,
+      label="ما هي مشكلتك؟", style=TextStyle.paragraph, placeholder="اشرح مشكلتك بالتفصيل...", required=True
   )
 
   async def on_submit(self, interaction: discord.Interaction):
@@ -379,17 +328,65 @@ class SupportModal(Modal, title="الدعم الفني"):
     channel_name = f"تكت-دعم-{num:03d}"
 
     await create_ticket_channel(
-        interaction,
-        channel_name,
-        "الدعم الفني",
-        ROLE_IDS["دعم"],
-        discord.Color.red(),
-        [("وصف المشكلة", self.issue.value)],
+        interaction, channel_name, "الدعم الفني", ROLE_IDS["دعم"], discord.Color.red(), [("وصف المشكلة", self.issue.value)]
     )
 
 
 # ---------------------------------------------------------
-# 6. دالة موحدة لإنشاء التكت مع العدادات والمنشن التلقائي
+# 6. قوائم اختيار ألوان البيوت (ماب السرقة وماب النط)
+# ---------------------------------------------------------
+class ColorSelect(Select):
+  def __init__(self, map_name: str):
+    self.map_name = map_name
+    
+    # إذا كان ماب السرقة، لا تظهر ألوان (لأن الخدمة غير توفرة حالياً)
+    if map_name == "ماب السرقة":
+      options = [discord.SelectOption(label="عذراً، الخدمة غير متوفرة حالياً لماب السرقة", value="none", emoji="❌")]
+    else:
+      # إذا كان ماب النط، تظهر فقط ألوان البارتي والهلاوين
+      options = [
+          discord.SelectOption(label="لون البارتي", value="لون البارتي", emoji="🎉"),
+          discord.SelectOption(label="لون الهلاوين", value="لون الهلاوين", emoji="🎃"),
+      ]
+    super().__init__(placeholder="يرجى اختيار اللون المطلوب...", options=options)
+
+  async def callback(self, interaction: discord.Interaction):
+    if self.values[0] == "none":
+      await interaction.response.send_message("❌ خدمة ماب السرقة غير متوفرة حالياً.", ephemeral=True)
+      return
+    await interaction.response.send_modal(HouseColorModal(self.map_name, self.values[0]))
+
+
+class ColorSelectView(View):
+  def __init__(self, map_name: str):
+    super().__init__(timeout=None)
+    self.add_item(ColorSelect(map_name))
+
+
+class MapSelect(Select):
+  def __init__(self):
+    options = [
+        discord.SelectOption(label="ماب السرقة", value="ماب السرقة", description="لطلب ألوان ماب السرقة", emoji="🥷"),
+        discord.SelectOption(label="ماب النط", value="ماب النط", description="لطلب ألوان ماب النط", emoji="🦘"),
+    ]
+    super().__init__(placeholder="يرجى تحديد ماب الألوان...", options=options)
+
+  async def callback(self, interaction: discord.Interaction):
+    selected_map = self.values[0]
+    if selected_map == "ماب السرقة":
+      await interaction.response.send_message("⚠️ عذراً، خدمة ألوان ماب السرقة لم يتم توفيرها حتى الآن.", ephemeral=True)
+    else:
+      await interaction.response.send_message("يرجى تحديد اللون المطلوب:", view=ColorSelectView(selected_map), ephemeral=True)
+
+
+class MapSelectView(View):
+  def __init__(self):
+    super().__init__(timeout=None)
+    self.add_item(MapSelect())
+
+
+# ---------------------------------------------------------
+# 7. دالة موحدة لإنشاء التكت مع العدادات والمنشن التلقائي
 # ---------------------------------------------------------
 async def create_ticket_channel(
     interaction: discord.Interaction,
@@ -408,42 +405,26 @@ async def create_ticket_channel(
   overwrites = {
       guild.default_role: discord.PermissionOverwrite(read_messages=False),
       user: discord.PermissionOverwrite(
-          read_messages=True,
-          send_messages=True,
-          attach_files=True,
-          embed_links=True,
+          read_messages=True, send_messages=True, attach_files=True, embed_links=True
       ),
       guild.me: discord.PermissionOverwrite(
-          read_messages=True,
-          send_messages=True,
-          attach_files=True,
-          embed_links=True,
+          read_messages=True, send_messages=True, attach_files=True, embed_links=True
       ),
   }
 
   if role:
     overwrites[role] = discord.PermissionOverwrite(
-        read_messages=True,
-        send_messages=True,
-        attach_files=True,
-        embed_links=True,
+        read_messages=True, send_messages=True, attach_files=True, embed_links=True
     )
 
   if second_member:
     overwrites[second_member] = discord.PermissionOverwrite(
-        read_messages=True,
-        send_messages=True,
-        attach_files=True,
-        embed_links=True,
+        read_messages=True, send_messages=True, attach_files=True, embed_links=True
     )
 
-  ticket_channel = await guild.create_text_channel(
-      name=channel_name, overwrites=overwrites
-  )
+  ticket_channel = await guild.create_text_channel(name=channel_name, overwrites=overwrites)
 
-  embed = discord.Embed(
-      title=f"تفاصيل تذكرة: {service_type}", color=embed_color
-  )
+  embed = discord.Embed(title=f"تفاصيل تذكرة: {service_type}", color=embed_color)
   embed.set_author(name=user.display_name, icon_url=user.display_avatar.url)
   embed.add_field(name="صاحب الطلب", value=user.mention, inline=False)
 
@@ -456,44 +437,28 @@ async def create_ticket_channel(
   if role:
     mention_text += f" | {role.mention}"
 
-  await ticket_channel.send(
-      content=mention_text, embed=embed, view=TicketControlView()
-  )
-  await interaction.response.send_message(
-      f"✅ تم فتح التذكتك بنجاح في {ticket_channel.mention}", ephemeral=True
-  )
+  await ticket_channel.send(content=mention_text, embed=embed, view=TicketControlView())
+  await interaction.response.send_message(f"✅ تم فتح التذكتك بنجاح في {ticket_channel.mention}", ephemeral=True)
 
 
 # ---------------------------------------------------------
-# 7. قائمة اختيار الخدمات الرئيسية
+# 8. قائمة اختيار الخدمات الرئيسية
 # ---------------------------------------------------------
 class TicketTypeSelect(Select):
 
   def __init__(self):
     options = [
         discord.SelectOption(
-            label="وسيط مضمون",
-            value="وسيط",
-            description="لفتح تكت وساطة وتداول بين طرفين",
-            emoji="⚖️",
+            label="وسيط مضمون", value="وسيط", description="لفتح تكت وساطة وتداول بين طرفين", emoji="⚖️"
         ),
         discord.SelectOption(
-            label="تطوير المابات",
-            value="تطوير",
-            description="لطلب خدمة تطوير مابات",
-            emoji="📊",
+            label="تطوير المابات", value="تطوير", description="لطلب خدمة تطوير مابات", emoji="📊"
         ),
         discord.SelectOption(
-            label="تكت الهلاوين",
-            value="هلاوين",
-            description="لطلب خدمات وفعاليات الهلاوين",
-            emoji="🎃",
+            label="الالوان بيوت", value="ألوان", description="لطلب خدمة الألوان بيوت (ماب النط أو ماب السرقة)", emoji="🎨"
         ),
         discord.SelectOption(
-            label="التواصل مع الدعم الفني",
-            value="دعم",
-            description="لأي مشكلة أو استفسار",
-            emoji="🎧",
+            label="التواصل مع الدعم الفني", value="دعم", description="لأي مشكلة أو استفسار", emoji="🎧"
         ),
     ]
     super().__init__(placeholder="اختر نوع التذكرة...", options=options)
@@ -504,8 +469,8 @@ class TicketTypeSelect(Select):
       await interaction.response.send_modal(MiddlemanModal())
     elif val == "تطوير":
       await interaction.response.send_modal(DevelopmentModal())
-    elif val == "هلاوين":
-      await interaction.response.send_modal(HalloweenModal())
+    elif val == "ألوان":
+      await interaction.response.send_message("يرجى تحديد ماب الألوان:", view=MapSelectView(), ephemeral=True)
     elif val == "دعم":
       await interaction.response.send_modal(SupportModal())
 
@@ -518,21 +483,13 @@ class MainTicketView(View):
 
 
 # ---------------------------------------------------------
-# 8. أوامر السلاش (Slash Commands)
+# 9. أوامر السلاش (Slash Commands)
 # ---------------------------------------------------------
-@bot.tree.command(
-    name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة"
-)
-@discord.app_commands.describe(
-    image_url="ضع رابط الصورة المراد إضافتها في البنل (اختياري)"
-)
-async def slash_ticket_setup(
-    interaction: discord.Interaction, image_url: str = None
-):
+@bot.tree.command(name="ticket", description="إنشاء بنل التكتات مع إمكانية إرفاق صورة")
+@discord.app_commands.describe(image_url="ضع رابط الصورة المراد إضافتها في البنل (اختياري)")
+async def slash_ticket_setup(interaction: discord.Interaction, image_url: str = None):
   if not interaction.user.guild_permissions.administrator:
-    await interaction.response.send_message(
-        "❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True
-    )
+    await interaction.response.send_message("❌ هذا الأمر مخصص للإدارة فقط!", ephemeral=True)
     return
 
   embed = discord.Embed(
@@ -545,56 +502,38 @@ async def slash_ticket_setup(
     embed.set_image(url=image_url)
 
   await interaction.channel.send(embed=embed, view=MainTicketView())
-  await interaction.response.send_message(
-      "✅ تم إنشاء بنل التكتات بنجاح!", ephemeral=True
-  )
+  await interaction.response.send_message("✅ تم إنشاء بنل التكتات بنجاح!", ephemeral=True)
 
 
 @bot.tree.command(name="add", description="إضافة عضو إلى التكت الحالي")
 @discord.app_commands.describe(member="العضو المراد إضافته")
 async def slash_add(interaction: discord.Interaction, member: discord.Member):
   await interaction.channel.set_permissions(
-      member,
-      read_messages=True,
-      send_messages=True,
-      attach_files=True,
-      embed_links=True,
+      member, read_messages=True, send_messages=True, attach_files=True, embed_links=True
   )
-  await interaction.response.send_message(
-      f"✅ تم إضافة {member.mention} إلى التكت وبإمكانه إرسال الصور والرسائل."
-  )
+  await interaction.response.send_message(f"✅ تم إضافة {member.mention} إلى التكت وبإمكانه إرسال الصور والرسائل.")
 
 
 @bot.tree.command(name="remove", description="إزالة عضو من التكت الحالي")
 @discord.app_commands.describe(member="العضو المراد إزالته")
-async def slash_remove(
-    interaction: discord.Interaction, member: discord.Member
-):
+async def slash_remove(interaction: discord.Interaction, member: discord.Member):
   await interaction.channel.set_permissions(member, overwrite=None)
-  await interaction.response.send_message(
-      f"🚫 تم إزالة {member.mention} من التكت."
-  )
+  await interaction.response.send_message(f"🚫 تم إزالة {member.mention} من التكت.")
 
 
 @bot.tree.command(name="rename", description="إعادة تسمية التكت الحالي")
 @discord.app_commands.describe(new_name="اسم التكت الجديد")
 async def slash_rename(interaction: discord.Interaction, new_name: str):
   await interaction.channel.edit(name=new_name)
-  await interaction.response.send_message(
-      f"✏️ تم تغيير اسم التكت إلى: `{new_name}`"
-  )
+  await interaction.response.send_message(f"✏️ تم تغيير اسم التكت إلى: `{new_name}`")
 
 
 @bot.tree.command(name="close", description="إغلاق وحذف التكت الحالي")
 async def slash_close(interaction: discord.Interaction):
   if not interaction.user.guild_permissions.manage_channels:
-    await interaction.response.send_message(
-        "❌ عذراً، الإدارة فقط هي من تستطيع إغلاق التكت!", ephemeral=True
-    )
+    await interaction.response.send_message("❌ عذراً، الإدارة فقط هي من تستطيع إغلاق التكت!", ephemeral=True)
     return
-  await interaction.response.send_message(
-      "🛑 سيتم حذف التكت خلال 3 ثوانٍ..."
-  )
+  await interaction.response.send_message("🛑 سيتم حذف التكت خلال 3 ثوانٍ...")
   await asyncio.sleep(3)
   await interaction.channel.delete()
 
@@ -603,9 +542,7 @@ async def slash_close(interaction: discord.Interaction):
 async def slash_lock(interaction: discord.Interaction):
   if not interaction.user.guild_permissions.manage_channels:
     return
-  await interaction.channel.set_permissions(
-      interaction.guild.default_role, send_messages=False
-  )
+  await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=False)
   await interaction.response.send_message("🔒 تم قفل الروم بنجاح.")
 
 
@@ -613,42 +550,28 @@ async def slash_lock(interaction: discord.Interaction):
 async def slash_unlock(interaction: discord.Interaction):
   if not interaction.user.guild_permissions.manage_channels:
     return
-  await interaction.channel.set_permissions(
-      interaction.guild.default_role, send_messages=True
-  )
+  await interaction.channel.set_permissions(interaction.guild.default_role, send_messages=True)
   await interaction.response.send_message("🔓 تم فتح الروم بنجاح.")
 
 
 @bot.tree.command(name="warn", description="تحذير عضو في السيرفر")
 @discord.app_commands.describe(member="العضو", reason="السبب")
-async def slash_warn(
-    interaction: discord.Interaction,
-    member: discord.Member,
-    reason: str = "غير محدد",
-):
+async def slash_warn(interaction: discord.Interaction, member: discord.Member, reason: str = "غير محدد"):
   if not interaction.user.guild_permissions.manage_messages:
-    await interaction.response.send_message(
-        "❌ لا تمتلك الصلاحية لاستخدام هذا الأمر.", ephemeral=True
-    )
+    await interaction.response.send_message("❌ لا تمتلك الصلاحية لاستخدام هذا الأمر.", ephemeral=True)
     return
-  await interaction.response.send_message(
-      f"⚠️ تم تحذير {member.mention} بسبب: {reason}"
-  )
+  await interaction.response.send_message(f"⚠️ تم تحذير {member.mention} بسبب: {reason}")
 
 
 @bot.tree.command(name="prison", description="سجن عضو في السيرفر")
 @discord.app_commands.describe(member="العضو المراد سجنه")
 async def slash_prison(interaction: discord.Interaction, member: discord.Member):
   if not interaction.user.guild_permissions.manage_roles:
-    await interaction.response.send_message(
-        "❌ لا تمتلك صلاحية إدارة الرتب.", ephemeral=True
-    )
+    await interaction.response.send_message("❌ لا تمتلك صلاحية إدارة الرتب.", ephemeral=True)
     return
   prison_role = discord.utils.get(interaction.guild.roles, name="Prison")
   if not prison_role:
-    prison_role = await interaction.guild.create_role(
-        name="Prison", color=discord.Color.dark_gray()
-    )
+    prison_role = await interaction.guild.create_role(name="Prison", color=discord.Color.dark_gray())
     for channel in interaction.guild.channels:
       await channel.set_permissions(prison_role, send_messages=False)
   await member.add_roles(prison_role)
@@ -656,7 +579,7 @@ async def slash_prison(interaction: discord.Interaction, member: discord.Member)
 
 
 # ---------------------------------------------------------
-# 9. تشغيل البوت
+# 10. تشغيل البوت
 # ---------------------------------------------------------
 @bot.event
 async def on_ready():
